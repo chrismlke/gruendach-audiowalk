@@ -14,25 +14,20 @@ Alle Texte stehen oben im Script-Teil von `src/page.html` im Block `STATIONS`:
 - `question` – Diskussionsfrage
 - `audio` – Pfad zur eigenen Aufnahme, z. B. `"audio/01-neumarkt.mp3"`
 
-Eigene Aufnahmen als MP3 in `public/audio/` legen. Danach:
-
-```bash
-./build.sh
-```
+Eigene Aufnahmen als MP3 in `public/audio/` legen. Danach `./build.sh` ausführen
+(erzeugt `public/index.html` aus `src/page.html`).
 
 ## Online stellen (Vercel)
 
-```bash
-npx vercel          # Vorschau-Link
-npx vercel --prod   # endgültiger Link
-```
-
-Beim ersten Mal fragt Vercel nach Login und Projektnamen.
+Das Repository ist mit dem Vercel-Projekt `gruendach-audiowalk` verbunden.
+Jede Änderung auf `main` wird automatisch veröffentlicht:
+https://gruendach-audiowalk.vercel.app
 
 ## Funktionen
 
 - Routenplan (maßstäblich, ohne externe Kartendienste)
 - Standortanzeige und Hinweis, sobald man weniger als 35 m von einer Station entfernt ist
 - Audio-Player: eigene MP3 oder Computerstimme als Platzhalter
+- Stimmenauswahl mit Tempo-Regler (gilt pro Gerät)
 - Fortschritt (erledigte Stationen) wird im Browser gespeichert
 - Links zu OpenStreetMap je Station
