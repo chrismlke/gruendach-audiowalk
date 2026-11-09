@@ -1,0 +1,531 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+</head>
+<body>
+<title>Gründach-Audiowalk Osnabrück</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Audiowalk durch die Osnabrücker Innenstadt zum Thema Dachbegrünung – fünf Stationen, ca. 1,2 km.">
+<meta name="theme-color" content="#2F6B3A">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Familjen+Grotesk:wght@500;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: eine Spalte wie ein Wanderführer – Kopf, Routenplan, Stationsliste, Mini-Player unten */
+:root{
+  --bg:#EEF1EA; --surface:#FAFBF7; --ink:#1C2620; --muted:#5A675D; --line:#CBD3C6;
+  --moss:#2F6B3A; --moss-ink:#FFFFFF; --sedum:#A93D64; --soft:#DDE5D7;
+  --display:"Familjen Grotesk", "Helvetica Neue", Arial, sans-serif;
+  --body:"Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --mono:"IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#111713; --surface:#19211C; --ink:#E5EBE2; --muted:#9BA89E; --line:#2D3931;
+  --moss:#83C28D; --moss-ink:#0F1A12; --sedum:#E58AAB; --soft:#223027; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#111713; --surface:#19211C; --ink:#E5EBE2; --muted:#9BA89E; --line:#2D3931;
+  --moss:#83C28D; --moss-ink:#0F1A12; --sedum:#E58AAB; --soft:#223027; color-scheme:dark}
+
+*{box-sizing:border-box}
+html,body{background:var(--bg)}
+body{color:var(--ink);font:400 17px/1.55 var(--body);-webkit-font-smoothing:antialiased}
+.wrap{max-width:640px;margin:0 auto;
+  padding-left:max(16px, env(safe-area-inset-left,0px));
+  padding-right:max(16px, env(safe-area-inset-right,0px));
+  padding-block:20px 140px;display:flex;flex-direction:column;gap:28px}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;margin:0;line-height:1.1}
+p{margin:0}
+button{font:inherit;color:inherit;cursor:pointer}
+a{color:var(--moss)}
+:focus-visible{outline:3px solid var(--sedum);outline-offset:2px;border-radius:6px}
+.label{font:500 12px/1.2 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.num{font-variant-numeric:tabular-nums}
+
+/* Kopf */
+header{display:flex;flex-direction:column;gap:14px;padding-top:8px}
+header h1{font-size:clamp(34px,9vw,52px);font-weight:700;letter-spacing:-.02em}
+header h1 em{font-style:normal;color:var(--moss)}
+.lede{color:var(--muted);max-width:52ch}
+.facts{display:flex;flex-wrap:wrap;gap:8px 18px;font:500 14px/1.3 var(--mono);color:var(--ink)}
+.facts span::before{content:"";display:inline-block;width:7px;height:7px;border-radius:2px;background:var(--moss);margin-right:7px;vertical-align:1px}
+.actions{display:flex;flex-wrap:wrap;gap:10px}
+.btn{border:0;border-radius:999px;padding:12px 20px;font-weight:700;display:inline-flex;align-items:center;gap:9px;min-height:46px}
+.btn-primary{background:var(--moss);color:var(--moss-ink)}
+.btn-ghost{background:transparent;border:1.5px solid var(--line)}
+.btn svg{width:18px;height:18px;flex:none}
+
+/* Routenplan */
+.plan{background:var(--surface);border:1px solid var(--line);border-radius:18px;overflow:hidden}
+.plan svg{display:block;width:100%;height:auto}
+.plan-foot{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:10px 14px;border-top:1px solid var(--line);font-size:14px;color:var(--muted)}
+.gps-status{display:flex;align-items:center;gap:8px;min-width:0}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--line);flex:none}
+.dot.on{background:var(--moss);box-shadow:0 0 0 4px color-mix(in srgb,var(--moss) 25%,transparent)}
+.r-line{stroke:var(--moss);stroke-width:3.5;fill:none;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:1 9}
+.r-pin circle{fill:var(--surface);stroke:var(--moss);stroke-width:2.5}
+.r-pin.done circle{fill:var(--moss)}
+.r-pin.done text.n{fill:var(--moss-ink)}
+.r-pin.cur circle{stroke:var(--sedum);stroke-width:3.5}
+.r-pin text.n{font:700 13px var(--display);fill:var(--ink)}
+.r-pin text.t{font:500 10.5px var(--mono);fill:var(--muted)}
+.r-pin{cursor:pointer}
+.r-grid{stroke:var(--line);stroke-width:1}
+.r-axis{font:500 9.5px var(--mono);fill:var(--muted)}
+.me circle.halo{fill:var(--sedum);opacity:.2}
+.me circle.core{fill:var(--sedum);stroke:var(--surface);stroke-width:2.5}
+
+/* Hinweis-Banner (Nähe zu einer Station) */
+.near{display:flex;gap:12px;align-items:center;background:var(--sedum);color:var(--surface);border-radius:14px;padding:12px 14px}
+.near p{flex:1;min-width:0;font-weight:700}
+.near .btn{background:var(--surface);color:var(--ink);padding:9px 16px;min-height:40px}
+
+/* Stationen */
+.list{display:flex;flex-direction:column;gap:12px;list-style:none;margin:0;padding:0}
+.st{background:var(--surface);border:1px solid var(--line);border-radius:16px}
+.st.cur{border-color:var(--sedum);box-shadow:0 0 0 1px var(--sedum)}
+.st-head{width:100%;display:grid;grid-template-columns:44px 1fr auto;gap:12px;align-items:center;text-align:left;background:none;border:0;padding:14px}
+.st-n{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;font:700 19px var(--display);background:var(--soft);color:var(--ink)}
+.st.done .st-n{background:var(--moss);color:var(--moss-ink)}
+.st-title{display:block;font:700 20px/1.15 var(--display);text-wrap:balance}
+.st-head .where{display:block;font-size:14px;color:var(--muted);margin-top:2px}
+.st-head .meta{font:500 12px var(--mono);color:var(--muted);text-align:right;white-space:nowrap}
+.chev{transition:transform .2s}
+.st[data-open="true"] .chev{transform:rotate(180deg)}
+.st-body{padding:0 14px 16px;display:flex;flex-direction:column;gap:14px}
+.look{display:flex;gap:10px;align-items:flex-start;background:var(--soft);border-radius:12px;padding:12px}
+.look svg{width:22px;height:22px;flex:none;color:var(--sedum);margin-top:1px}
+.look b{display:block;font:500 12px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--sedum);margin-bottom:2px}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.chip{border:1.5px solid var(--line);background:transparent;border-radius:999px;padding:8px 14px;font-size:15px;min-height:40px;display:inline-flex;align-items:center;gap:7px;text-decoration:none;color:var(--ink)}
+.chip[aria-pressed="true"]{background:var(--moss);border-color:var(--moss);color:var(--moss-ink)}
+.chip svg{width:16px;height:16px}
+details.tx summary{cursor:pointer;font-weight:700;color:var(--moss);list-style:none}
+details.tx summary::-webkit-details-marker{display:none}
+details.tx summary::before{content:"+ ";font-family:var(--mono)}
+details.tx[open] summary::before{content:"– "}
+details.tx p{margin-top:8px;max-width:62ch}
+.q{border-left:3px solid var(--moss);padding:2px 0 2px 12px}
+.q b{display:block;font:500 12px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:2px}
+.draft{font:500 11px var(--mono);color:var(--muted)}
+
+/* Stimme */
+.voice{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:14px}
+.voice h2{font-size:22px}
+.field{display:flex;flex-direction:column;gap:6px}
+.field-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
+.voice select{width:100%;min-width:0;font:inherit;font-size:16px;color:var(--ink);background:var(--bg);border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;min-height:46px}
+.voice input[type=range]{width:100%;accent-color:var(--moss);min-height:32px}
+.rate-scale{display:flex;justify-content:space-between;font:500 11px var(--mono);color:var(--muted)}
+
+/* Bonus */
+.bonus{border:1.5px dashed var(--line);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:10px}
+.bonus h3{font-size:20px}
+
+footer{display:flex;flex-direction:column;gap:8px;font-size:14px;color:var(--muted);border-top:1px solid var(--line);padding-top:16px}
+footer ul{margin:0;padding-left:18px}
+
+/* Mini-Player */
+.player{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--surface);border-top:1px solid var(--line);
+  padding-left:max(16px, env(safe-area-inset-left,0px));padding-right:max(16px, env(safe-area-inset-right,0px));
+  padding-top:10px;padding-bottom:calc(10px + env(safe-area-inset-bottom,0px))}
+.player-in{max-width:640px;margin:0 auto;display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center}
+.pp{width:50px;height:50px;border-radius:50%;border:0;background:var(--moss);color:var(--moss-ink);display:grid;place-items:center}
+.pp svg{width:22px;height:22px}
+.p-title{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.p-sub{font:500 12px var(--mono);color:var(--muted)}
+.bar{height:4px;border-radius:2px;background:var(--line);margin-top:6px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--sedum);transition:width .3s linear}
+.p-next{border:0;background:none;padding:8px;color:var(--muted)}
+.p-next svg{width:24px;height:24px}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(96px + env(safe-area-inset-bottom,0px));z-index:30;background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;font-size:15px;max-width:calc(100% - 32px)}
+@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<div class="wrap">
+  <header>
+    <span class="label">Audiowalk · Innenstadt Osnabrück</span>
+    <h1>Dächer, die <em>grün</em> werden</h1>
+    <p class="lede">Ein Spaziergang über die Frage, warum Osnabrücks Dächer mehr können als Regen ableiten. Kopfhörer auf, an jeder Station stehen bleiben und nach oben schauen.</p>
+    <div class="facts num" id="facts"></div>
+    <div class="actions">
+      <button class="btn btn-primary" id="startBtn" type="button">
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
+        <span>Walk starten</span>
+      </button>
+      <button class="btn btn-ghost" id="gpsBtn" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="7"/></svg>
+        <span>Standort verwenden</span>
+      </button>
+      <button class="btn btn-ghost" id="voiceBtn" type="button" aria-expanded="false" aria-controls="voicePanel">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 10v4M8 7v10M12 4v16M16 8v8M20 11v2"/></svg>
+        <span>Stimme</span>
+      </button>
+    </div>
+  </header>
+
+  <section class="voice" id="voicePanel" hidden aria-labelledby="vTitle">
+    <div class="field-head">
+      <h2 id="vTitle">Stimme einstellen</h2>
+      <button class="chip" id="vClose" type="button">Fertig</button>
+    </div>
+    <div class="field">
+      <label class="label" for="vSelect">Stimme</label>
+      <select id="vSelect"></select>
+    </div>
+    <div class="field">
+      <div class="field-head"><label class="label" for="vRate">Tempo</label><span class="label num" id="vRateOut"></span></div>
+      <input type="range" id="vRate" min="0.7" max="1.4" step="0.05">
+      <div class="rate-scale"><span>langsamer</span><span>normal</span><span>schneller</span></div>
+    </div>
+    <div class="row">
+      <button class="chip" id="vTest" type="button"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg> Probe hören</button>
+    </div>
+    <p class="draft" id="vNote">Welche Stimmen es gibt, hängt vom Handy oder Browser ab. Die Auswahl gilt nur auf diesem Gerät.</p>
+  </section>
+
+  <div class="near" id="near" hidden>
+    <p id="nearText"></p>
+    <button class="btn" id="nearBtn" type="button">Anhören</button>
+  </div>
+
+  <section class="plan" aria-label="Routenplan">
+    <svg id="map" viewBox="0 0 360 300" role="img" aria-label="Schematischer Routenplan der fünf Stationen"></svg>
+    <div class="plan-foot">
+      <div class="gps-status"><span class="dot" id="gpsDot"></span><span id="gpsText">Standort aus</span></div>
+      <a id="osmLink" href="#" target="_blank" rel="noopener">Route in OpenStreetMap</a>
+    </div>
+  </section>
+
+  <section style="display:flex;flex-direction:column;gap:12px" aria-labelledby="stTitle">
+    <div class="row" style="justify-content:space-between">
+      <h2 id="stTitle" style="font-size:24px">Stationen</h2>
+      <span class="label num" id="progress"></span>
+    </div>
+    <ol class="list" id="list"></ol>
+  </section>
+
+  <section class="bonus" aria-labelledby="bonusTitle">
+    <span class="label">Bonus · ca. 3 km nördlich, per Rad oder Bus</span>
+    <h3 id="bonusTitle"></h3>
+    <p id="bonusText"></p>
+    <div class="row" id="bonusRow"></div>
+  </section>
+
+  <footer>
+    <p><b>Prototyp.</b> Texte und Positionen sind Entwürfe der Projektgruppe und werden vor dem Einsatz vor Ort geprüft. Solange keine Aufnahmen hinterlegt sind, liest eine Computerstimme die Texte vor.</p>
+    <p>Quellen:</p>
+    <ul>
+      <li><a href="https://www.co2online.de/foerdermittel/details/55581890/" target="_blank" rel="noopener">Stadt Osnabrück – Grün statt Grau (Übersicht bei co2online)</a></li>
+      <li><a href="https://cdn.lifepr.de/a/aad055158ca19ac1/attachments/0970248.attachment/filename/PM-2019-06-13-Hochule_Osnbar%C3%BCck_Projekt_RooBi.pdf" target="_blank" rel="noopener">Hochschule Osnabrück – Projekt RooBi (Pressemitteilung 2019)</a></li>
+    </ul>
+  </footer>
+</div>
+
+<div class="player" id="player" hidden>
+  <div class="player-in">
+    <button class="pp" id="ppBtn" type="button" aria-label="Wiedergabe pausieren"></button>
+    <div style="min-width:0">
+      <div class="p-title" id="pTitle"></div>
+      <div class="p-sub" id="pSub"></div>
+      <div class="bar"><i id="pBar"></i></div>
+    </div>
+    <button class="p-next" id="nextBtn" type="button" aria-label="Nächste Station">
+      <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 18l8.5-6L6 6v12zm10-12v12h2V6h-2z"/></svg>
+    </button>
+  </div>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+/* ---------- Inhalte: hier bearbeitet die Gruppe Stationen, Texte und Audiodateien ----------
+   audio: Pfad zu einer MP3 (z. B. "audio/01-neumarkt.mp3"). Bei null liest die Computerstimme den Text. */
+const STATIONS = [
+  { id:"neumarkt", title:"Hitze über dem Pflaster", where:"Neumarkt", lat:52.2719, lng:8.0460, audio:null,
+    look:"Drehe dich einmal um dich selbst. Auf wie vielen Dächern rund um den Platz wächst etwas?",
+    text:"Willkommen am Neumarkt. Um dich herum: Pflaster, Asphalt, Glas und Dächer aus Bitumen und Ziegel. An einem Sommertag speichern diese Flächen die Wärme und geben sie nachts wieder ab. Die Innenstadt kühlt kaum noch ab. Fast alle Dächer, die du von hier siehst, liegen ungenutzt in der Sonne. Ein begrüntes Dach verhält sich anders: Pflanzen und Substrat halten Regenwasser fest und verdunsten es nach und nach. Das kühlt die Dachfläche und die Luft darüber. Auf diesem Walk schauen wir uns an, wo in Osnabrück solche Flächen liegen, was ihrer Begrünung im Weg steht und wie die Stadt dabei hilft. Geh jetzt Richtung Große Straße bis zum Nikolaiort.",
+    question:"Wer sollte für die Hitze in der Innenstadt verantwortlich sein: Eigentümer, Stadt oder alle?" },
+  { id:"nikolaiort", title:"Flachdächer über der Einkaufsstraße", where:"Nikolaiort / Große Straße", lat:52.2752, lng:8.0447, audio:null,
+    look:"Schau über die Schaufenster hinweg. Wo erkennst du flache oder nur leicht geneigte Dächer?",
+    text:"Hier in der Fußgängerzone stehen viele große Geschäftshäuser. Von unten fallen ihre Dächer kaum auf, von oben sind es oft weite, flache Flächen. Genau solche Dächer lassen sich am einfachsten begrünen. Man unterscheidet zwei Arten. Eine extensive Begrünung ist leicht und pflegearm: wenige Zentimeter Substrat, darauf trockenheitsfeste Pflanzen wie Sedum. Eine intensive Begrünung ist ein echter Dachgarten mit dicker Bodenschicht, Stauden oder sogar Gehölzen und braucht deutlich mehr Pflege. Die wichtigste Frage stellt sich aber vorher: Trägt das Dach das zusätzliche Gewicht, vor allem wenn das Substrat mit Wasser vollgesogen ist? Bei älteren Gebäuden entscheidet oft die Statik. Weiter geht es zum Rathaus am Markt.",
+    question:"Würdet ihr eine Dachfläche in der Fußgängerzone eher als Gründach oder für Solaranlagen nutzen – oder beides?" },
+  { id:"rathaus", title:"Grün statt Grau", where:"Rathaus am Markt", lat:52.2771, lng:8.0431, audio:null,
+    look:"Welche Dächer am Markt wären flach genug für eine Begrünung?",
+    text:"Vor dir steht das Rathaus. Die Stadt Osnabrück fördert Dach- und Fassadenbegrünung mit dem Programm Grün statt Grau. Gefördert werden Bestandsdächer, also Flachdächer und Dächer bis dreißig Grad Neigung. Bezuschusst werden Planung, Material, der Bau, die Pflege im ersten Jahr und nötige Verbesserungen der Statik. Private Eigentümerinnen und Eigentümer können bis zu sechzig Prozent der Kosten erstattet bekommen, höchstens sechzig Euro pro Quadratmeter. In der Innenstadt liegt die Förderquote um bis zu zehn Prozentpunkte höher, mit bis zu siebzig Euro pro Quadratmeter. Die Stadt setzt also bewusst einen Anreiz genau dort, wo du gerade stehst. Geh jetzt hinüber zum Domhof.",
+    question:"Reicht eine freiwillige Förderung – oder sollte Dachbegrünung in der Innenstadt Pflicht werden?" },
+  { id:"domhof", title:"Steildach und Denkmal", where:"Domhof", lat:52.2782, lng:8.0466, audio:null,
+    look:"Schätze die Neigung der Dächer rund um den Domhof. Flacher oder steiler als dreißig Grad?",
+    text:"Am Domhof sieht die Dachlandschaft ganz anders aus. Hier prägen steile Ziegeldächer und historische Gebäude das Bild. Je steiler ein Dach, desto schwieriger wird die Begrünung: Das Substrat muss gegen Abrutschen gesichert werden, Wasser läuft schneller ab, der Aufwand steigt. Dazu kommt das Stadtbild. In der Altstadt spielt der Denkmalschutz oft eine Rolle, und ein grünes Dach verändert den Charakter eines Platzes. Das heißt nicht, dass hier nichts geht. Nebengebäude, Anbauten, Garagen oder Innenhöfe bieten häufig flache Flächen, die man von der Straße kaum sieht. Die Frage ist, wie viel Veränderung ein historisches Stadtbild verträgt. Die letzte Station liegt an der Hase.",
+    question:"Wie viel Grün verträgt ein historisches Stadtbild? Wo würdet ihr die Grenze ziehen?" },
+  { id:"hase", title:"Wohin mit dem Regen?", where:"An der Hase, Hasestraße", lat:52.2806, lng:8.0440, audio:null,
+    look:"Folge einem Fallrohr mit den Augen. Wohin fließt das Wasser, wenn es auf dem Boden ankommt?",
+    text:"Hier an der Hase endet der Walk, und hier zeigt sich ein weiterer Nutzen. Bei Starkregen fließt das Wasser von Dächern und Straßen in kurzer Zeit in die Kanalisation. Ist sie überlastet, laufen Keller voll oder ungeklärtes Wasser gelangt in die Gewässer. Ein Gründach wirkt wie ein Schwamm. Es hält einen Teil des Regens zurück und gibt den Rest verzögert ab. Je dicker das Substrat, desto mehr Wasser bleibt oben. Viele begrünte Dächer zusammen können das Kanalnetz spürbar entlasten. Damit sind wir beim Kern: Ein Gründach ist kein Schmuck, sondern Teil der Infrastruktur einer Stadt, die mit mehr Hitze und mehr Starkregen umgehen muss. Danke fürs Mitgehen.",
+    question:"Sollten Eigentümer mit Gründach weniger Abwassergebühren zahlen?" }
+];
+const BONUS = { title:"Versuchsdach am Campus Haste", lat:52.3035, lng:8.0190,
+  text:"Auf dem Bibliotheks- und Hörsaalgebäude der Hochschule Osnabrück am Campus Haste legte das Projekt RooBi im September 2018 auf rund 500 m² 54 Versuchsflächen an. Getestet wurden Saatmischungen mit jeweils über 40 heimischen Wildpflanzenarten und leichte Substrate aus Lava, Bims, Tuff und Ziegelbruch. Ziel: Gründächer als Ersatzlebensraum für die schwindenden Sandmagerrasen Nordwestdeutschlands." };
+const NEAR_RADIUS = 35; // Meter
+
+/* ---------- Hilfsfunktionen ---------- */
+const $ = s => document.querySelector(s);
+const store = {
+  get(k, d){ try{ const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; }catch(e){ return d; } },
+  set(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+};
+function dist(a, b){ // Haversine, Meter
+  const R=6371000, t=Math.PI/180, dLat=(b.lat-a.lat)*t, dLng=(b.lng-a.lng)*t;
+  const h=Math.sin(dLat/2)**2+Math.cos(a.lat*t)*Math.cos(b.lat*t)*Math.sin(dLng/2)**2;
+  return 2*R*Math.asin(Math.sqrt(h));
+}
+const fmtM = m => m < 1000 ? Math.round(m/10)*10 + " m" : (m/1000).toFixed(1).replace(".", ",") + " km";
+const minutesFor = t => Math.max(1, Math.round(t.split(/\s+/).length / 140));
+function toast(msg){ const el=$("#toast"); el.textContent=msg; el.hidden=false; clearTimeout(toast.t); toast.t=setTimeout(()=>el.hidden=true, 3200); }
+
+let done = new Set(store.get("aw-done", []));
+let current = store.get("aw-current", 0);
+let openId = STATIONS[current]?.id;
+let me = null;
+
+/* ---------- Kopfzeile ---------- */
+const routeLen = STATIONS.slice(1).reduce((s, st, i) => s + dist(STATIONS[i], st), 0);
+const listenMin = STATIONS.reduce((s, st) => s + minutesFor(st.text), 0);
+$("#facts").innerHTML = `<span>${STATIONS.length} Stationen</span><span>ca. ${fmtM(routeLen*1.25)} Fußweg</span><span>ca. ${Math.round(routeLen*1.25/75 + listenMin + STATIONS.length*3)} Min.</span>`;
+$("#osmLink").href = `https://www.openstreetmap.org/directions?engine=fossgis_osrm_foot&route=${STATIONS[0].lat}%2C${STATIONS[0].lng}%3B${STATIONS.at(-1).lat}%2C${STATIONS.at(-1).lng}`;
+
+/* ---------- Routenplan (maßstäblich projiziert, ohne Kartenkacheln) ---------- */
+const W=360, H=300, PAD=46;
+const lat0 = STATIONS.reduce((s,x)=>s+x.lat,0)/STATIONS.length, kx = Math.cos(lat0*Math.PI/180);
+const xs = STATIONS.map(s=>s.lng*kx), ys = STATIONS.map(s=>s.lat);
+const minX=Math.min(...xs), maxX=Math.max(...xs), minY=Math.min(...ys), maxY=Math.max(...ys);
+const scale = Math.min((W-2*PAD)/(maxX-minX), (H-2*PAD)/(maxY-minY));
+const offX = (W - (maxX-minX)*scale)/2, offY = (H - (maxY-minY)*scale)/2;
+const proj = p => [offX + (p.lng*kx - minX)*scale, offY + (maxY - p.lat)*scale];
+const mPerUnit = 111320 / scale; // Meter je SVG-Einheit
+
+function drawMap(){
+  const pts = STATIONS.map(proj);
+  const barM = 200, barU = barM / mPerUnit;
+  let g = "";
+  for (let x=30; x<W; x+=60) g += `<line class="r-grid" x1="${x}" y1="0" x2="${x}" y2="${H}" opacity=".5"/>`;
+  for (let y=30; y<H; y+=60) g += `<line class="r-grid" x1="0" y1="${y}" x2="${W}" y2="${y}" opacity=".5"/>`;
+  g += `<path class="r-line" d="M${pts.map(p=>p.map(v=>v.toFixed(1)).join(",")).join(" L")}"/>`;
+  STATIONS.forEach((s,i)=>{
+    const [x,y] = pts[i], right = x < W*0.6;
+    const cls = ["r-pin", done.has(s.id)?"done":"", i===current?"cur":""].join(" ");
+    g += `<g class="${cls}" data-i="${i}" tabindex="0" role="button" aria-label="Station ${i+1}: ${s.where}">
+      <circle cx="${x}" cy="${y}" r="13"/>
+      <text class="n" x="${x}" y="${y+4.5}" text-anchor="middle">${i+1}</text>
+      <text class="t" x="${right? x+19 : x-19}" y="${y+4}" text-anchor="${right?"start":"end"}">${s.where.split(/[,/]/)[0].trim()}</text></g>`;
+  });
+  // Nordpfeil + Maßstab
+  g += `<g transform="translate(${W-24},22)"><path d="M0,-11 L6,5 L0,1 L-6,5 Z" fill="currentColor" style="color:var(--ink)"/><text class="r-axis" x="0" y="17" text-anchor="middle">N</text></g>`;
+  g += `<g transform="translate(14,${H-16})"><line x1="0" y1="0" x2="${barU}" y2="0" stroke="var(--ink)" stroke-width="2"/><line x1="0" y1="-4" x2="0" y2="4" stroke="var(--ink)" stroke-width="2"/><line x1="${barU}" y1="-4" x2="${barU}" y2="4" stroke="var(--ink)" stroke-width="2"/><text class="r-axis" x="${barU+6}" y="3.5">${barM} m</text></g>`;
+  if (me){
+    const [x,y] = proj(me);
+    if (x>-20 && x<W+20 && y>-20 && y<H+20){
+      const r = Math.max(6, Math.min(40, (me.acc||20)/mPerUnit));
+      g += `<g class="me"><circle class="halo" cx="${x}" cy="${y}" r="${r}"/><circle class="core" cx="${x}" cy="${y}" r="6"/></g>`;
+    }
+  }
+  const svg = $("#map"); svg.innerHTML = g;
+  svg.querySelectorAll(".r-pin").forEach(el=>{
+    const go = ()=>{ openStation(+el.dataset.i, true); };
+    el.addEventListener("click", go);
+    el.addEventListener("keydown", e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); go(); } });
+  });
+}
+
+/* ---------- Stationsliste ---------- */
+const icons = {
+  play:'<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>',
+  pause:'<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 5h4v14H7zM13 5h4v14h-4z"/></svg>',
+  check:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg>',
+  pin:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>',
+  up:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg>',
+  chev:'<svg class="chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>'
+};
+function renderList(){
+  const ol = $("#list"); ol.innerHTML = "";
+  STATIONS.forEach((s,i)=>{
+    const open = s.id === openId, d = me ? fmtM(dist(me, s)) : `${minutesFor(s.text)} Min.`;
+    const li = document.createElement("li");
+    li.className = `st ${done.has(s.id)?"done":""} ${i===current?"cur":""}`;
+    li.dataset.open = open; li.id = "st-"+s.id;
+    li.innerHTML = `
+      <button class="st-head" type="button" aria-expanded="${open}" aria-controls="b-${s.id}">
+        <span class="st-n">${done.has(s.id) ? icons.check.replace('stroke-width="2.5"','stroke-width="3" width="22" height="22"') : i+1}</span>
+        <span style="min-width:0"><span class="st-title">${s.title}</span><span class="where">${s.where}</span></span>
+        <span class="meta num">${d}<br>${icons.chev}</span>
+      </button>
+      <div class="st-body" id="b-${s.id}" ${open?"":"hidden"}>
+        <div class="look">${icons.up}<div><b>Blick nach oben</b>${s.look}</div></div>
+        <div class="row">
+          <button class="chip js-play" type="button" data-i="${i}">${isPlaying(i)?icons.pause+" Pause":icons.play+" Anhören"}</button>
+          <button class="chip js-done" type="button" data-i="${i}" aria-pressed="${done.has(s.id)}">${icons.check} Erledigt</button>
+          <a class="chip" href="https://www.openstreetmap.org/?mlat=${s.lat}&mlon=${s.lng}#map=18/${s.lat}/${s.lng}" target="_blank" rel="noopener">${icons.pin} Karte</a>
+        </div>
+        <details class="tx"><summary>Text zum Mitlesen</summary><p>${s.text}</p></details>
+        <div class="q"><b>Zum Diskutieren</b>${s.question}</div>
+        ${s.audio ? "" : '<span class="draft">Noch keine Aufnahme · Computerstimme</span>'}
+      </div>`;
+    ol.appendChild(li);
+  });
+  ol.querySelectorAll(".st-head").forEach((b,i)=>b.addEventListener("click", ()=>{
+    openId = openId === STATIONS[i].id ? null : STATIONS[i].id; renderList();
+  }));
+  ol.querySelectorAll(".js-play").forEach(b=>b.addEventListener("click", ()=>togglePlay(+b.dataset.i)));
+  ol.querySelectorAll(".js-done").forEach(b=>b.addEventListener("click", ()=>{
+    const s = STATIONS[+b.dataset.i]; done.has(s.id) ? done.delete(s.id) : done.add(s.id); persist(); refresh();
+  }));
+  $("#progress").textContent = `${done.size} / ${STATIONS.length} erledigt`;
+  $("#startBtn span").textContent = done.size === 0 ? "Walk starten" : (done.size === STATIONS.length ? "Noch einmal hören" : `Weiter mit Station ${nextOpen()+1}`);
+}
+function persist(){ store.set("aw-done", [...done]); store.set("aw-current", current); }
+function refresh(){ drawMap(); renderList(); }
+function nextOpen(){ const i = STATIONS.findIndex(s=>!done.has(s.id)); return i < 0 ? 0 : i; }
+function openStation(i, scroll){
+  current = i; openId = STATIONS[i].id; persist(); refresh();
+  if (scroll) document.getElementById("st-"+STATIONS[i].id)?.scrollIntoView({behavior:"smooth", block:"start"});
+}
+
+/* ---------- Wiedergabe: MP3 wenn vorhanden, sonst Sprachausgabe ---------- */
+const synth = window.speechSynthesis;
+const audioEl = new Audio();
+let playing = null, paused = false, wake = null;
+function isPlaying(i){ return playing === i && !paused; }
+let voicePref = Object.assign({uri:"", rate:0.97}, store.get("aw-voice", {}));
+function allVoices(){ try{ return synth ? synth.getVoices() : []; }catch(e){ return []; } }
+function germanVoice(){
+  const v = allVoices();
+  if (voicePref.uri){ const chosen = v.find(x=>x.voiceURI === voicePref.uri); if (chosen) return chosen; }
+  return v.find(x=>/^de/i.test(x.lang) && /google|neural|natural|anna|helena|katja|petra|markus/i.test(x.name)) || v.find(x=>/^de/i.test(x.lang)) || null;
+}
+
+/* ---------- Stimmenauswahl ---------- */
+function fillVoices(){
+  const sel = $("#vSelect"), v = allVoices();
+  const de = v.filter(x=>/^de/i.test(x.lang)), list = de.length ? de : v;
+  const clean = n => n.replace(/\s*[-–]\s*(German|Deutsch).*$/i, "").replace(/^(Microsoft|Google)\s+/i, "$1 ");
+  sel.innerHTML = `<option value="">Automatisch (beste deutsche Stimme)</option>` +
+    list.map(x=>`<option value="${x.voiceURI.replace(/"/g,"&quot;")}">${clean(x.name)}${x.localService===false?" · braucht Internet":""}</option>`).join("");
+  sel.value = list.some(x=>x.voiceURI === voicePref.uri) ? voicePref.uri : "";
+  const note = $("#vNote");
+  if (!synth || !v.length) note.textContent = "Dieser Browser bietet keine Vorlesestimmen an. Probiere Chrome oder Safari.";
+  else if (!de.length) note.textContent = "Auf diesem Gerät ist keine deutsche Stimme installiert. Eine lässt sich in den Einstellungen unter Sprachausgabe nachladen.";
+  else note.textContent = `${de.length} deutsche ${de.length===1?"Stimme":"Stimmen"} auf diesem Gerät. Die Auswahl gilt nur hier.`;
+}
+function showRate(){ $("#vRateOut").textContent = voicePref.rate.toFixed(2).replace(/0$/,"").replace(".", ",") + "×"; }
+$("#vRate").value = voicePref.rate; showRate();
+$("#vRate").addEventListener("input", e=>{ voicePref.rate = +e.target.value; showRate(); store.set("aw-voice", voicePref); });
+$("#vSelect").addEventListener("change", e=>{ voicePref.uri = e.target.value; store.set("aw-voice", voicePref); });
+$("#vTest").addEventListener("click", ()=>{
+  if (!synth){ toast("Dieser Browser kann keine Texte vorlesen."); return; }
+  if (playing !== null && !paused){ paused = true; updatePlayer(); renderList(); }
+  stopAll();
+  const u = new SpeechSynthesisUtterance("Hallo! So klinge ich auf dem Gründach-Audiowalk durch Osnabrück.");
+  u.lang = "de-DE"; u.rate = voicePref.rate; const v = germanVoice(); if (v) u.voice = v;
+  synth.speak(u);
+});
+function toggleVoicePanel(open){
+  $("#voicePanel").hidden = !open; $("#voiceBtn").setAttribute("aria-expanded", open);
+  if (open){ fillVoices(); $("#voicePanel").scrollIntoView({behavior:"smooth", block:"nearest"}); }
+}
+$("#voiceBtn").addEventListener("click", ()=>toggleVoicePanel($("#voicePanel").hidden));
+$("#vClose").addEventListener("click", ()=>toggleVoicePanel(false));
+if (synth){ try{ synth.addEventListener("voiceschanged", fillVoices); }catch(e){ synth.onvoiceschanged = fillVoices; } }
+fillVoices(); setTimeout(fillVoices, 600);
+async function keepAwake(on){
+  try{ if (on && "wakeLock" in navigator && !wake) wake = await navigator.wakeLock.request("screen");
+       if (!on && wake){ await wake.release(); wake = null; } }catch(e){ wake = null; }
+}
+function stopAll(){ try{ synth && synth.cancel(); }catch(e){} audioEl.pause(); }
+function play(i){
+  stopAll(); playing = i; paused = false; openStation(i, false); setBar(0); showPlayer();
+  const s = STATIONS[i];
+  if (s.audio){
+    audioEl.src = s.audio; audioEl.play().catch(()=>toast("Audio konnte nicht starten. Bitte noch einmal tippen."));
+  } else if (synth){
+    const u = new SpeechSynthesisUtterance(`Station ${i+1}. ${s.title}. ${s.text}`);
+    u.lang = "de-DE"; u.rate = voicePref.rate; const v = germanVoice(); if (v) u.voice = v;
+    const total = u.text.length;
+    u.onboundary = e => setBar(e.charIndex / total);
+    u.onend = () => { if (playing === i) finished(i); };
+    synth.speak(u);
+  } else { toast("Dieser Browser kann keine Texte vorlesen."); }
+  keepAwake(true); updatePlayer();
+}
+function finished(i){
+  setBar(1); paused = true; done.add(STATIONS[i].id); persist(); refresh(); updatePlayer(); keepAwake(false);
+  if (i < STATIONS.length-1) toast(`Station ${i+1} erledigt. Weiter zu: ${STATIONS[i+1].where}`);
+  else toast("Walk abgeschlossen. Danke fürs Mitgehen!");
+}
+function togglePlay(i){
+  if (playing !== i) return play(i);
+  const s = STATIONS[i];
+  if (paused){
+    if ($("#pBar").style.width === "100%") return play(i);
+    paused = false; s.audio ? audioEl.play() : synth.resume(); keepAwake(true);
+  } else {
+    paused = true; s.audio ? audioEl.pause() : synth.pause(); keepAwake(false);
+  }
+  updatePlayer(); renderList();
+}
+audioEl.addEventListener("timeupdate", ()=>{ if (audioEl.duration) setBar(audioEl.currentTime/audioEl.duration); });
+audioEl.addEventListener("ended", ()=>{ if (playing !== null) finished(playing); });
+function setBar(f){ $("#pBar").style.width = Math.min(100, Math.max(0, f*100)) + "%"; }
+function showPlayer(){ $("#player").hidden = false; }
+function updatePlayer(){
+  if (playing === null) return;
+  const s = STATIONS[playing];
+  $("#pTitle").textContent = `${playing+1} · ${s.title}`;
+  $("#pSub").textContent = s.audio ? s.where : `${s.where} · Computerstimme`;
+  $("#ppBtn").innerHTML = isPlaying(playing) ? icons.pause : icons.play;
+  $("#ppBtn").setAttribute("aria-label", isPlaying(playing) ? "Wiedergabe pausieren" : "Wiedergabe fortsetzen");
+  $("#nextBtn").disabled = playing >= STATIONS.length-1;
+  $("#nextBtn").style.opacity = playing >= STATIONS.length-1 ? .35 : 1;
+}
+$("#ppBtn").addEventListener("click", ()=>togglePlay(playing));
+$("#nextBtn").addEventListener("click", ()=>{ if (playing < STATIONS.length-1) play(playing+1); });
+$("#startBtn").addEventListener("click", ()=>play(nextOpen()));
+
+/* ---------- Standort ---------- */
+let watchId = null, lastNear = null;
+$("#gpsBtn").addEventListener("click", ()=>{
+  if (watchId !== null){ navigator.geolocation.clearWatch(watchId); watchId = null; me = null; setGps(false, "Standort aus"); refresh(); $("#near").hidden = true; return; }
+  if (!("geolocation" in navigator)){ setGps(false, "Standort wird nicht unterstützt"); return; }
+  setGps(false, "Standort wird gesucht …");
+  try{
+    watchId = navigator.geolocation.watchPosition(onPos, err=>{
+      watchId = null;
+      setGps(false, err.code === 1 ? "Standort nicht erlaubt – in der Web-Version freigeben" : "Standort nicht verfügbar");
+    }, {enableHighAccuracy:true, maximumAge:5000, timeout:20000});
+  }catch(e){ setGps(false, "Standort nicht verfügbar"); }
+});
+function setGps(on, text){ $("#gpsDot").classList.toggle("on", on); $("#gpsText").textContent = text; $("#gpsBtn span").textContent = on ? "Standort aus" : "Standort verwenden"; }
+function onPos(p){
+  me = {lat:p.coords.latitude, lng:p.coords.longitude, acc:p.coords.accuracy};
+  let best = 0, bd = Infinity;
+  STATIONS.forEach((s,i)=>{ const d = dist(me, s); if (d < bd){ bd = d; best = i; } });
+  setGps(true, bd > 3000 ? `Du bist ${fmtM(bd)} von der Route entfernt` : `Station ${best+1} in ${fmtM(bd)}`);
+  const nearEl = $("#near");
+  if (bd <= NEAR_RADIUS && !done.has(STATIONS[best].id) && playing !== best){
+    $("#nearText").textContent = `Du bist an Station ${best+1}: ${STATIONS[best].where}`;
+    nearEl.hidden = false; $("#nearBtn").onclick = () => { nearEl.hidden = true; play(best); };
+    if (lastNear !== best && navigator.vibrate) navigator.vibrate(200);
+    lastNear = best;
+  } else if (bd > NEAR_RADIUS*1.5){ nearEl.hidden = true; }
+  refresh();
+}
+
+/* ---------- Bonus ---------- */
+$("#bonusTitle").textContent = BONUS.title;
+$("#bonusText").textContent = BONUS.text;
+$("#bonusRow").innerHTML = `<a class="chip" href="https://www.openstreetmap.org/?mlat=${BONUS.lat}&mlon=${BONUS.lng}#map=17/${BONUS.lat}/${BONUS.lng}" target="_blank" rel="noopener">${icons.pin} Karte</a>`;
+
+refresh();
+</script>
+
+</body>
+</html>
