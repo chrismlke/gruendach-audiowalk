@@ -108,7 +108,13 @@ details.tx p{margin-top:8px;max-width:62ch}
 .voice h2{font-size:22px}
 .field{display:flex;flex-direction:column;gap:6px}
 .field-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
-.voice select{width:100%;min-width:0;font:inherit;font-size:16px;color:var(--ink);background:var(--bg);border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;min-height:46px}
+.vlist{display:flex;flex-direction:column;gap:6px;max-height:300px;overflow-y:auto;padding:2px}
+.vopt{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:var(--bg);border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;min-height:50px}
+.vopt[aria-checked="true"]{border-color:var(--moss);background:var(--soft)}
+.vdot{width:18px;height:18px;border-radius:50%;border:2px solid var(--line);flex:none}
+.vopt[aria-checked="true"] .vdot{border:5px solid var(--moss)}
+.vname{display:block;font-weight:700;overflow-wrap:anywhere}
+.vsub{display:block;font:500 12px var(--mono);color:var(--muted)}
 .voice input[type=range]{width:100%;accent-color:var(--moss);min-height:32px}
 .rate-scale{display:flex;justify-content:space-between;font:500 11px var(--mono);color:var(--muted)}
 
@@ -164,8 +170,8 @@ footer ul{margin:0;padding-left:18px}
       <button class="chip" id="vClose" type="button">Fertig</button>
     </div>
     <div class="field">
-      <label class="label" for="vSelect">Stimme</label>
-      <select id="vSelect"></select>
+      <span class="label" id="vListLabel">Stimme</span>
+      <div class="vlist" id="vList" role="radiogroup" aria-labelledby="vListLabel"></div>
     </div>
     <div class="field">
       <div class="field-head"><label class="label" for="vRate">Tempo</label><span class="label num" id="vRateOut"></span></div>
@@ -382,10 +388,13 @@ function openStation(i, scroll){
   if (scroll) document.getElementById("st-"+STATIONS[i].id)?.scrollIntoView({behavior:"smooth", block:"start"});
 }
 
-/* ---------- Wiedergabe: MP3 wenn vorhanden, sonst Sprachausgabe ---------- */
+/* ---------- Wiedergabe: MP3 wenn vorhanden, sonst Sprachausgabe ----------
+   Texte werden satzweise vorgelesen: Chrome bricht lange Texte sonst ab, und eine
+   neue Stimme kann mitten in der Station übernehmen. */
 const synth = window.speechSynthesis;
 const audioEl = new Audio();
 let playing = null, paused = false, wake = null;
+let tts = {parts:[], idx:0, token:0};
 function isPlaying(i){ return playing === i && !paused; }
 let voicePref = Object.assign({uri:"", rate:0.97}, store.get("aw-voice", {}));
 function allVoices(){ try{ return synth ? synth.getVoices() : []; }catch(e){ return []; } }
@@ -394,75 +403,104 @@ function germanVoice(){
   if (voicePref.uri){ const chosen = v.find(x=>x.voiceURI === voicePref.uri); if (chosen) return chosen; }
   return v.find(x=>/^de/i.test(x.lang) && /google|neural|natural|anna|helena|katja|petra|markus/i.test(x.name)) || v.find(x=>/^de/i.test(x.lang)) || null;
 }
+const cleanName = n => n.replace(/\s*[-–]\s*(German|Deutsch).*$/i, "").replace(/\s*\((Natural|Neural)\)/i, " (natürlich)").trim();
+function utter(text){
+  const u = new SpeechSynthesisUtterance(text);
+  const v = germanVoice();
+  if (v){ u.voice = v; u.lang = v.lang; } else u.lang = "de-DE";
+  u.rate = voicePref.rate;
+  return u;
+}
+function splitSentences(t){ return (t.match(/[^.!?]+[.!?]+["“”]?\s*|[^.!?]+$/g) || [t]).map(x=>x.trim()).filter(Boolean); }
 
 /* ---------- Stimmenauswahl ---------- */
 function fillVoices(){
-  const sel = $("#vSelect"), v = allVoices();
+  const box = $("#vList"), v = allVoices();
   const de = v.filter(x=>/^de/i.test(x.lang)), list = de.length ? de : v;
-  const clean = n => n.replace(/\s*[-–]\s*(German|Deutsch).*$/i, "").replace(/^(Microsoft|Google)\s+/i, "$1 ");
-  sel.innerHTML = `<option value="">Automatisch (beste deutsche Stimme)</option>` +
-    list.map(x=>`<option value="${x.voiceURI.replace(/"/g,"&quot;")}">${clean(x.name)}${x.localService===false?" · braucht Internet":""}</option>`).join("");
-  sel.value = list.some(x=>x.voiceURI === voicePref.uri) ? voicePref.uri : "";
+  const current = list.some(x=>x.voiceURI === voicePref.uri) ? voicePref.uri : "";
+  const opt = (uri, name, sub) => `<button type="button" class="vopt" role="radio" aria-checked="${uri===current}" data-uri="${uri.replace(/"/g,"&quot;")}"><span class="vdot" aria-hidden="true"></span><span style="min-width:0"><span class="vname">${name}</span>${sub?`<span class="vsub">${sub}</span>`:""}</span></button>`;
+  box.innerHTML = opt("", "Automatisch", "beste deutsche Stimme auf diesem Gerät") +
+    list.map(x=>opt(x.voiceURI, cleanName(x.name), x.localService===false ? "braucht Internet" : "")).join("");
+  box.querySelectorAll(".vopt").forEach(b=>b.addEventListener("click", ()=>selectVoice(b.dataset.uri)));
   const note = $("#vNote");
   if (!synth || !v.length) note.textContent = "Dieser Browser bietet keine Vorlesestimmen an. Probiere Chrome oder Safari.";
   else if (!de.length) note.textContent = "Auf diesem Gerät ist keine deutsche Stimme installiert. Eine lässt sich in den Einstellungen unter Sprachausgabe nachladen.";
-  else note.textContent = `${de.length} deutsche ${de.length===1?"Stimme":"Stimmen"} auf diesem Gerät. Die Auswahl gilt nur hier.`;
+  else note.textContent = `${de.length} deutsche ${de.length===1?"Stimme":"Stimmen"} auf diesem Gerät. Antippen wählt die Stimme und spielt eine Hörprobe. Die Auswahl gilt nur hier.`;
+}
+function selectVoice(uri){
+  voicePref.uri = uri; store.set("aw-voice", voicePref); fillVoices(); updatePlayer();
+  if (playing !== null && !paused && !STATIONS[playing].audio){ speakFrom(tts.idx); toast(`Stimme gewechselt: ${voiceLabel()}`); }
+  else sample();
+}
+function voiceLabel(){ const v = germanVoice(); return v ? cleanName(v.name) : "Standardstimme"; }
+function sample(){
+  if (!synth){ toast("Dieser Browser kann keine Texte vorlesen."); return; }
+  if (playing !== null && !paused) pauseCurrent();
+  tts.token++; try{ synth.cancel(); }catch(e){}
+  synth.speak(utter("Hallo! So klinge ich auf dem Gründach-Audiowalk durch Osnabrück."));
 }
 function showRate(){ $("#vRateOut").textContent = voicePref.rate.toFixed(2).replace(/0$/,"").replace(".", ",") + "×"; }
 $("#vRate").value = voicePref.rate; showRate();
 $("#vRate").addEventListener("input", e=>{ voicePref.rate = +e.target.value; showRate(); store.set("aw-voice", voicePref); });
-$("#vSelect").addEventListener("change", e=>{ voicePref.uri = e.target.value; store.set("aw-voice", voicePref); });
-$("#vTest").addEventListener("click", ()=>{
-  if (!synth){ toast("Dieser Browser kann keine Texte vorlesen."); return; }
-  if (playing !== null && !paused){ paused = true; updatePlayer(); renderList(); }
-  stopAll();
-  const u = new SpeechSynthesisUtterance("Hallo! So klinge ich auf dem Gründach-Audiowalk durch Osnabrück.");
-  u.lang = "de-DE"; u.rate = voicePref.rate; const v = germanVoice(); if (v) u.voice = v;
-  synth.speak(u);
-});
+$("#vRate").addEventListener("change", ()=>{ if (playing !== null && !paused && !STATIONS[playing].audio) speakFrom(tts.idx); });
+$("#vTest").addEventListener("click", sample);
 function toggleVoicePanel(open){
   $("#voicePanel").hidden = !open; $("#voiceBtn").setAttribute("aria-expanded", open);
   if (open){ fillVoices(); $("#voicePanel").scrollIntoView({behavior:"smooth", block:"nearest"}); }
 }
 $("#voiceBtn").addEventListener("click", ()=>toggleVoicePanel($("#voicePanel").hidden));
 $("#vClose").addEventListener("click", ()=>toggleVoicePanel(false));
-if (synth){ try{ synth.addEventListener("voiceschanged", fillVoices); }catch(e){ synth.onvoiceschanged = fillVoices; } }
+if (synth){ try{ synth.addEventListener("voiceschanged", ()=>{ fillVoices(); updatePlayer(); }); }catch(e){ synth.onvoiceschanged = fillVoices; } }
 fillVoices(); setTimeout(fillVoices, 600);
+
 async function keepAwake(on){
   try{ if (on && "wakeLock" in navigator && !wake) wake = await navigator.wakeLock.request("screen");
        if (!on && wake){ await wake.release(); wake = null; } }catch(e){ wake = null; }
 }
-function stopAll(){ try{ synth && synth.cancel(); }catch(e){} audioEl.pause(); }
+function stopAll(){ tts.token++; try{ synth && synth.cancel(); }catch(e){} audioEl.pause(); }
+function speakFrom(idx){
+  const i = playing, token = ++tts.token;
+  try{ synth.cancel(); }catch(e){}
+  tts.idx = Math.max(0, Math.min(idx, tts.parts.length-1));
+  const next = () => {
+    if (token !== tts.token) return;
+    if (tts.idx >= tts.parts.length){ finished(i); return; }
+    const u = utter(tts.parts[tts.idx]);
+    u.onend = () => { if (token !== tts.token) return; tts.idx++; setBar(tts.idx / tts.parts.length); next(); };
+    u.onerror = e => { if (token !== tts.token || e.error === "interrupted" || e.error === "canceled") return; tts.idx++; next(); };
+    synth.speak(u);
+  };
+  setBar(tts.idx / tts.parts.length);
+  setTimeout(next, 60); // Safari braucht nach cancel() einen Moment
+}
 function play(i){
   stopAll(); playing = i; paused = false; openStation(i, false); setBar(0); showPlayer();
   const s = STATIONS[i];
   if (s.audio){
     audioEl.src = s.audio; audioEl.play().catch(()=>toast("Audio konnte nicht starten. Bitte noch einmal tippen."));
   } else if (synth){
-    const u = new SpeechSynthesisUtterance(`Station ${i+1}. ${s.title}. ${s.text}`);
-    u.lang = "de-DE"; u.rate = voicePref.rate; const v = germanVoice(); if (v) u.voice = v;
-    const total = u.text.length;
-    u.onboundary = e => setBar(e.charIndex / total);
-    u.onend = () => { if (playing === i) finished(i); };
-    synth.speak(u);
+    tts.parts = splitSentences(`Station ${i+1}. ${s.title}. ${s.text}`);
+    speakFrom(0);
   } else { toast("Dieser Browser kann keine Texte vorlesen."); }
   keepAwake(true); updatePlayer();
 }
 function finished(i){
-  setBar(1); paused = true; done.add(STATIONS[i].id); persist(); refresh(); updatePlayer(); keepAwake(false);
+  tts.token++; setBar(1); paused = true; done.add(STATIONS[i].id); persist(); refresh(); updatePlayer(); keepAwake(false);
   if (i < STATIONS.length-1) toast(`Station ${i+1} erledigt. Weiter zu: ${STATIONS[i+1].where}`);
   else toast("Walk abgeschlossen. Danke fürs Mitgehen!");
 }
+function pauseCurrent(){
+  paused = true;
+  if (STATIONS[playing].audio) audioEl.pause(); else { tts.token++; try{ synth.cancel(); }catch(e){} }
+  keepAwake(false); updatePlayer(); renderList();
+}
 function togglePlay(i){
   if (playing !== i) return play(i);
-  const s = STATIONS[i];
-  if (paused){
-    if ($("#pBar").style.width === "100%") return play(i);
-    paused = false; s.audio ? audioEl.play() : synth.resume(); keepAwake(true);
-  } else {
-    paused = true; s.audio ? audioEl.pause() : synth.pause(); keepAwake(false);
-  }
-  updatePlayer(); renderList();
+  if (!paused) return pauseCurrent();
+  if ($("#pBar").style.width === "100%") return play(i);
+  paused = false;
+  STATIONS[i].audio ? audioEl.play() : speakFrom(tts.idx); // weiter ab dem aktuellen Satz
+  keepAwake(true); updatePlayer(); renderList();
 }
 audioEl.addEventListener("timeupdate", ()=>{ if (audioEl.duration) setBar(audioEl.currentTime/audioEl.duration); });
 audioEl.addEventListener("ended", ()=>{ if (playing !== null) finished(playing); });
@@ -472,7 +510,7 @@ function updatePlayer(){
   if (playing === null) return;
   const s = STATIONS[playing];
   $("#pTitle").textContent = `${playing+1} · ${s.title}`;
-  $("#pSub").textContent = s.audio ? s.where : `${s.where} · Computerstimme`;
+  $("#pSub").textContent = s.audio ? s.where : `${s.where} · Stimme: ${voiceLabel()}`;
   $("#ppBtn").innerHTML = isPlaying(playing) ? icons.pause : icons.play;
   $("#ppBtn").setAttribute("aria-label", isPlaying(playing) ? "Wiedergabe pausieren" : "Wiedergabe fortsetzen");
   $("#nextBtn").disabled = playing >= STATIONS.length-1;
